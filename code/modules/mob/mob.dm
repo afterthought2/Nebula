@@ -588,19 +588,34 @@
 //Updates lying and icons
 /mob/proc/UpdateLyingBuckledAndVerbStatus()
 	var/last_lying = lying
+	var/desired_lying
 	if(!resting && cannot_stand() && can_stand_overridden())
-		lying = 0
+		desired_lying = 0
 	else if(buckled)
 		anchored = 1
 		if(istype(buckled))
 			if(buckled.buckle_lying == -1)
-				lying = incapacitated(INCAPACITATION_KNOCKDOWN)
+				desired_lying = incapacitated(INCAPACITATION_KNOCKDOWN)
 			else
-				lying = buckled.buckle_lying
+				desired_lying = buckled.buckle_lying
 			if(buckled.buckle_movable)
 				anchored = 0
 	else
-		lying = incapacitated(INCAPACITATION_KNOCKDOWN)
+		desired_lying = incapacitated(INCAPACITATION_KNOCKDOWN)
+
+	if(desired_lying < lying) // We are trying to stand up; can we actually do so?
+		var/turf/T = loc
+		var/density_check = FALSE
+		if(istype(T))
+			density_check = T.density || !!(T.atom_flags & ATOM_FLAG_NO_CRAWLING)
+			if(!density_check)
+				for(var/atom/movable/A in T)
+					density_check = density_check || A.density || !!(A.atom_flags & ATOM_FLAG_NO_CRAWLING) // Dense stuff on our turf block us from standing up
+
+		if(!density_check)
+			lying = desired_lying
+	else
+		lying = desired_lying
 
 	if(lying)
 		set_density(0)
